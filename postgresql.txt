@@ -38,11 +38,15 @@ psql -h localhost -p 5432 -U postgres -d <DBName>
 $sudo su postgres
 sudo -i -u postgres     войти как пользователь postgres
 psql -U <username>      войти как пользователь username
+-h /var/run/postgresql  подключиться через UNIX сокет(используется по умолчанию без ключа -h)
 
 Сжатый дамп базы:
 pg_dump -h 127.0.0.1 --clean --create --no-privileges --verbose --quote-all-identifiers -p 5432 -U postgres <DBName> | gzip -9 > /tmp/dump$(date +\%Y-\%m-\%d).sql.gz
+Проверить сжатый архив:
+gunzip -t /tmp/dump$(date +\%Y-\%m-\%d).sql.gz
+echo $?  # Если вернет 0 - архив целый
 Затем загрузить сжатый дамп можно командой:
-gunzip -c /tmp/dump2025-01-04.sql.gz | psql -h 127.0.0.1 -p 5432 -U postgres -d <DBName>
+gunzip -c /tmp/dump2025-01-04.sql.gz | psql -h 127.0.0.1 -p 5432 -U postgres
 
 Дамп базы:
 pg_dump -h 127.0.0.1 --clean --create --no-privileges --verbose --quote-all-identifiers -p 5432 -U postgres <DBName> > /tmp/dump$(date +\%Y-\%m-\%d)
