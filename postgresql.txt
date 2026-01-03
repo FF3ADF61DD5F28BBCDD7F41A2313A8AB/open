@@ -1,0 +1,527 @@
+https://edu.postgrespro.ru/dev1-9.6/dev1_01_tools_overview.html
+
+Настройка доступов
+1)  vim /var/lib/pgsql/13/data/pg_hba.conf
+    либо (/etc/postgresql/9.3/main)
+2)  заменить
+    host all postgres 0.0.0.0/0 scram-sha-256
+    на
+    host <DBName> postgres <ip-адрес сервера1>/32 scram-sha-256
+    host <DBName> postgres <ip-адрес сервера2>/32 scram-sha-256
+    ...
+    host <DBName> postgres <ip-адрес сервераN>/32 scram-sha-256
+    где
+    host  база_данных  пользователь  адрес  метод-аутентификации  ls /[параметры-аутентификации]
+3)  systemctl restart postgresql
+    или pg_ctl reload
+4)  Если необходимо обеспечить шифрование между БД и сервисами/порталом
+    hostssl база_данных  пользователь  адрес  метод-аутентификации  [параметры-аутентификации]
+    остальное удалить
+
+Возможность отмены запроса
+1)
+BEGIN;
+СВОЙ ЗАПРОС
+2) Для отмены запроса
+ROLLBACK;
+2)Для приминения запроса
+COMMIT;
+
+DROP SCHEMA <schema_name> CASCADE; удаление схем из БД(ввести в psql)
+Если не дает удалить схемы надо повысить значение max_locks_per_transaction parameter
+в postgresql_conf и перезапустить службу.
+
+Если при восстановлении возникает ошибка при попытке дропа БД, нужно открыть файл бэкапа текстовым редактором и в строку с DROP DATABASE добавить в конец WITH (FORCE);
+
+Подключение к БД:
+psql -h localhost -p 5432 -U postgres -d <DBName>
+$sudo su postgres
+sudo -i -u postgres     войти как пользователь postgres
+psql -U <username>      войти как пользователь username
+
+Сжатый дамп базы:
+pg_dump -h 127.0.0.1 --clean --create --no-privileges --verbose --quote-all-identifiers -p 5432 -U postgres <DBName> | gzip -9 > /tmp/dump$(date +\%Y-\%m-\%d).sql.gz
+Затем загрузить сжатый дамп можно командой:
+gunzip -c /tmp/dump2025-01-04.sql.gz | psql -h 127.0.0.1 -p 5432 -U postgres -d <DBName>
+
+Дамп базы:
+pg_dump -h 127.0.0.1 --clean --create --no-privileges --verbose --quote-all-identifiers -p 5432 -U postgres <DBName> > /tmp/dump$(date +\%Y-\%m-\%d)
+
+Регулярное бекапирование через crontab
+1) crontab -e
+2) 0 2 */2 * * PGPASSWORD=<Пароль_от_БД> pg_dump -h 127.0.0.1 --clean --create --no-privileges --quote-all-identifiers -p 5432 -U postgres <DBName> > /tmp/dump$(date \+\%Y-\%m-\%d)
+3) 0 3 * * 1-5 find /tmp/ -maxdepth 1 -type f -name "dump*" -mtime +4 -delete
+4) crontab -l
+5) grep cron /var/log/syslog
+   cat /var/log/cron.log
+
+Методы репликации:
+    Асинхронная поточная
+    Синхронная
+    Логическая
+    Двунаправленная
+wal_lewel = replica
+
+Основные команды PostgreSQL в интерактивном режиме:
+\x - человекочитаемый вывод
+\l+ – список баз данных
+\q (или Ctrl+D) – выход
+\c <DB NAME>            подключиться к БД
+\dn                     перечень схем
+\connect db_name – подключиться к базе с именем db_name
+\du – список ролей/пользователей
+\dp (или \z) – список таблиц, представлений, последовательностей, прав доступа к ним
+\ds – последовательности
+\dt – список таблиц
+\t+ - доп инфа по таблицам
+# \password postgres    сменить пароль пользовател
+\o – пересылка результатов запроса в файл
+\i – читать входящие данные из файла
+\d “table_name” – описание таблицы
+\i запуск команды из внешнего файла, например \i /my/directory/my.sql
+\pset – команда настройки параметров форматирования
+\echo – выводит сообщение
+\? – справочник psql
+\help – справочник SQL
+\dt <schema_name>.*     перечень таблиц в схеме
+\dt+ — список всех таблиц с описанием
+\dt *s* — список всех таблиц, содержащих s в имени
+\dv – представления
+\dS – системные таблицы
+\d+ – описание таблицы
+\di – индексы
+\! pwd - выполнить команды linux в psql
+\out filename - вывод результата в файл
+psql < <файл_с_SQL> - выполнение запроса из файла
+\watch - периодически выполнять последний запрос(2 сек)
+\timing - отобразить время выполнения запроса
+Выполнение запроса с возможностью отката
+    \set AUTOCOMMIT off
+    запрос
+    COMMIT
+
+Примеры:
+createdb и dropdb – создание и удаление базы данных (соответственно)
+createuser и dropuser – создание и пользователя (соответственно)
+pg_ctl – программа предназначенная для решения общих задач управления (запуск, останов, настройка параметров и т.д.)
+initdb – создание новых кластеров PostgreSQL
+pg_dump – архивация и восстановление данных
+pg_dumpall – резервное копирование всего кластера PostgreSQL
+pg_restore – восстановление БД из архивов (.tar, .tar.gz)
+
+Удаление postgresql
+Источник: https://www.easydoit.ru/ubuntu/kak-udalit-postgresql-na-ubuntu-podrobnaya-instrukciya-dlya-polnogo-udaleniya/
+/var/lib/postgresql/
+/var/log/postgresql/
+/etc/postgresql/
+sudo apt-get remove --purge postgresql*
+
+Установка dbeaver portable
+1) Скачать dbeaver portable
+https://portapps.io/download/dbeaver-portable-win64-23.0.1-46-setup.exe/
+2) Скачать драйвера для postgres
+https://jdbc.postgresql.org/download/
+3)  База данных 
+    Управление драйверами
+    Постгрес
+    Изменить
+    Библиотеки
+    Удалить имеющиеся
+    Добавить скаченную
+Выполнить команду/запрос dbeaver ctrl+Enter
+
+service
+postgresql@13-main
+
+Логи ошибок на англ
+lc_messages TO 'en_US.UTF-8'
+
+Большие таблицы удалять TRUNCATE-ом
+
+Переинициализация кластера postgresql
+sudo systemctl stop postgresql
+sudo mv /var/lib/postgresql/13/main /var/lib/postgresql/13/main.bak
+sudo -u postgres /usr/lib/postgresql/13/bin/initdb -D /var/lib/postgresql/13/main
+sudo systemctl start postgresql@13-main
+
+Не используйте имена таблиц или столбцов в верхнем регистре
+
+Учтите:
+команда REINDEX, как и VACUUM FULL, полностью блокирует таблицу,
+поэтому выполнять её надо тогда, когда загрузка сервера минимальна
+И ОЧЕНЬ ВАЖНО, должно быть свободное место на жд от x2 от размера БД.
+
+Развертывание postgeres
+# Install the repository RPM:
+sudo yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+# Install PostgreSQL:
+sudo yum install -y postgresql14-server postgresql14-contrib
+localectl set-locale LANG=ru_RU.utf8
+timedatectl set-timezone Europe/Moscow
+systemctl edit postgresql-14.service
+[Service]
+Environment=PGDATA=/data/14         Опционально
+# Create cluster
+sudo /usr/pgsql-14/bin/postgresql-14-setup initdb
+sudo systemctl enable postgresql-14
+sudo systemctl start postgresql-14
+Настройка PostgreSQL
+#перечитать конфигурацию
+su postgres
+psql
+SELECT pg_reload_conf();
+max_connections = <кол-во пользователей> * 2
+shared_buffers = 128GB      от 30 до 50% всей доступной памяти на сервере
+temp_buffers = 32MB
+work_mem = 32MB
+maintenance_work_mem = 2GB
+#если не будет асинхронная репликация
+wal_level = minimal
+synchronous_commit = off
+listen_addresses = '*'
+host    all             all             192.168.1.22/32         trust           scram-sha-25
+https://selectel.ru/blog/tutorials/how-to-install-and-use-postgresql-on-ubuntu-20-04/
+
+Мониторинг PostgreSQL
+Доступность базы:
+Время отклика(запроса) pg_stat_statements
+- sum(total_time)/sum(calls)
+Количество ошибок pg_stat_database
+-sum(xact_rollback)
+Количество транзакций в секунду pg_stat_database
+sum(xact_commit + xact_rollback)
+Количество запросов в секунду pg_stat_statements
+sum(calls)
+Количество воркеров VACUUM-а
+count(*) ... WHERE query ~*'^autovacuum'
+
+Проверка запусков VACUUM:
+SELECT relname, 
+       last_vacuum, 
+       last_autovacuum 
+FROM pg_stat_user_tables;
+
+В момент возникновения долгой блокировки мы можем выполнить запрос к представлению pg_locks, посмотреть на блокируемые и блокирующие транзакции (функция pg_blocking_pids) и расшифровывать их при помощи pg_stat_activity.
+
+Размер таблиц, индексов и суммарный размер
+SELECT
+    TABLE_NAME,
+    pg_size_pretty(table_size) AS table_size,
+    pg_size_pretty(indexes_size) AS indexes_size,
+    pg_size_pretty(total_size) AS total_size
+FROM (
+    SELECT
+        TABLE_NAME,
+        pg_table_size(TABLE_NAME) AS table_size,
+        pg_indexes_size(TABLE_NAME) AS indexes_size,
+        pg_total_relation_size(TABLE_NAME) AS total_size
+    FROM (
+        SELECT ('"' || table_schema || '"."' || TABLE_NAME || '"') AS TABLE_NAME
+        FROM information_schema.tables
+    ) AS all_tables
+    ORDER BY total_size DESC
+) AS pretty_sizes;
+
+где хранится бд в системе
+SHOW data_directory;
+
+Хранение файлов БД
+/var/lib/postgresql/13/main/
+
+SELECT pg_database.datname,
+       pg_size_pretty(pg_database_size(pg_database.datname)) AS size
+FROM pg_database
+ORDER BY pg_database_size(pg_database.datname) DESC;
+
+\l+ размер БД
+du -sh /var/lib/postgresql/13/data/pg_base  размер в каталоге
+select pg_size_pretty(pg_database_size('<DBName>'));
+
+Размер табличных пространств:
+SELECT spcname, pg_size_pretty(pg_tablespace_size(spcname)) 
+FROM pg_tablespace
+WHERE spcname<>'pg_global';
+
+Размер отдельной таблицы: select pg_size_pretty(pg_total_relation_size('dbo."AuditEvents"'));
+
+Замена порта со стандартного(5432)
+sudo netstat -plunt |grep postmaster проверить какой порт использует PosgreSQL на машине Linux
+Заменить в файле postgresql.conf порт на нужный в параметре 
+port = 5432
+Сохранить файл и перезапустить БД.
+При подключении к БД теперь нужно указывать порт 
+
+Версия PostgreSQL
+SELECT version();
+
+Самые большие таблицы
+SELECT
+  schema_name
+, relname
+, pg_size_pretty(table_size) size
+, table_size
+FROM
+  (
+    SELECT
+      pg_catalog.pg_namespace.nspname schema_name
+    , relname 
+    , pg_relation_size(pg_catalog.pg_class.oid) table_size
+    FROM
+      pg_catalog.pg_class
+    JOIN
+      pg_catalog.pg_namespace
+        ON relnamespace = pg_catalog.pg_namespace.oid
+  ) t
+WHERE
+  schema_name NOT LIKE 'pg_%'
+ORDER BY
+  table_size DESC;
+
+Текущие запросы к БД:
+SELECT  * FROM  pg_stat_activity;
+
+Показывает выполняющиеся запросы:
+SELECT
+  pid
+, age(clock_timestamp(), query_start)
+, usename
+, query
+, state
+FROM
+  pg_stat_activity
+WHERE
+  state <> 'idle' AND
+  query NOT ILIKE '%pg_stat_activity%'
+ORDER BY
+  query_start DESC;
+
+Текущее количество соединений
+SELECT COUNT(*) FROM pg_stat_activity;
+
+Добавить колонку в таблицу:
+ALTER TABLE dbo."PlatformComponents"
+  ADD COLUMN "Name" varchar(255);
+
+Блокировки в БД
+select pid, 
+       usename, 
+       pg_blocking_pids(pid) as blocked_by, 
+       query as blocked_query
+from pg_stat_activity
+where cardinality(pg_blocking_pids(pid)) > 0;
+
+Зависшие транзакции
+SELECT datname, pid, state, query, age(clock_timestamp(), query_start) AS age
+FROM pg_stat_activity
+WHERE state <> 'idle'
+    AND query NOT LIKE '% FROM pg_stat_activity %'
+ORDER BY age;
+
+Мониторинг и поиск проблем репликации:
+pg_stat_replication — логи репликации
+pg_stat_activity — запросы на реплике
+pg_current_xlog_location(), pg_xlog_location_diff()
+
+Настройка репликации БД
+MASTER:
+sudo su - postgres -c 'psql'
+
+CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD 'replicator';
+
+SELECT * FROM pg_user;
+
+conf
+synchronous_commit = off
+wal_level = replica
+max_wal_senders = 10
+wal_keep_size = 1024
+
+hba
+host replication replicator <адрес_сети_реплики/маска> md5
+
+REPLICA:
+systemctl stop postgresql@<№_версии_psql>-main.service
+
+Очистка дирректории с данными постгреса
+sudo su - postgres
+rm -rf /var/lib/postgresql/14/main/*
+
+sudo su - postgres -c 'pg_basebackup -h 192.168.31.154 \
+              -D /var/lib/postgresql/14/main \
+              -U replicator \
+              -P -v -W -p 5432 \
+              -R -X stream -C -S pgstandby1'
+
+pg_basebackup -h <master_ip_address> \
+              -D /var/lib/postgresql/<№_версии_psql>/main \
+              -U replicator \
+              -P -v -W -p 5432 \
+              -R -X stream -C -S pgstandby1
+systemctl start postgresql@<№_версии_psql>-main.service
+!Если менялась конфигурация на мастере, то надо поменять и на слейве
+!Фулл вакуум и реиндекс при включенной репликации делать и нельзя
+
+
+Проверка репликации:
+На мастере:
+    SELECT * FROM pg_stat_replication;
+    SELECT * FROM pg_replication_slots;
+    SELECT * FROM pg_current_wal_lsn();
+На реплике:
+    SELECT * FROM pg_stat_wal_receiver;
+    SELECT * FROM pg_last_wal-receive_lsn();
+
+Создадть учетную запись с паролем
+CREATE USER user_name WITH PASSWORD 'user_password';
+
+Вывести список учеток
+select * from pg_user;
+
+Путь к файлу настроек доступа
+SELECT current_setting('hba_file');
+
+Вывести настройки конфигурации postgres
+SELECT name, setting FROM pg_settings;
+
+Применить изменения конфигурации
+SELECT pg_reload_conf();
+
+Вывести директорию postgres
+SHOW data_directory;
+
+Время выполнения запроса
+select now() - query_start, query from pg_stat_activity where state != 'idle' order by 1 desc;
+
+Удаление слота репликации
+select pg_drop_replication_slot('slot_name');
+
+Вычисление нуждающихся в индексах таблиц
+https://snakeproject.ru/rubric/article.php?art=postgres_20022021
+
+# Документация по представлению блокировок
+# https://postgrespro.ru/docs/postgrespro/10/view-pg-locks
+SELECT * FROM pg_locks;
+
+Вывести запросы которые заблокировали друг друга
+pg_ca.pid     AS blocked_pid,
+pg_ca.query   AS blocked_query,
+pg_sa.pid     AS blocking_pid,
+pg_sa.query   AS blocking_query
+FROM          pg_catalog.pg_locks pg_cl
+JOIN          pg_stat_activity pg_ca ON pg_ca.pid = pg_cl.pid
+JOIN          pg_catalog.pg_locks pg_lo ON pg_lo.pid != pg_cl.pid
+AND           pg_lo.transactionid = pg_cl.transactionid
+JOIN          pg_stat_activity pg_sa ON pg_sa.pid = pg_lo.pid
+WHERE         NOT pg_cl.granted
+AND           pg_sa.datname = '<ИМЯ_БАЗЫ_ДАННЫХ>';
+
+Вывести блокирующие запросы из базы
+SELECT pid, query, now() - query_start AS wait_duration
+FROM   pg_catalog.pg_stat_activity
+WHERE  datname = '<ИМЯ_БАЗЫ_ДАННЫХ>'
+AND    waiting;
+
+Вывести что именно болкировано
+SELECT
+pg_ca.relation::regclass,
+pg_sa.pid     AS blocked_pid,
+pg_sa.query   AS blocked_query,
+pg_cl.mode    AS blocked_mode,
+pg_sa.pid     AS blocking_pid,
+pg_sa.query   AS blocking_query,
+pg_ca.mode    AS blocking_mode
+FROM          pg_catalog.pg_locks pg_cl
+JOIN          pg_stat_activity pg_sa
+ON            pg_sa.pid = pg_cl.pid
+JOIN          pg_catalog.pg_locks pg_ca
+ON            pg_cl.pid != pg_ca.pid
+AND           pg_ca.relation = pg_cl.relation
+AND           pg_ca.locktype = pg_cl.locktype
+JOIN          pg_stat_activity pg_sa
+ON            pg_sa.pid = pg_ca.pid
+WHERE         not pg_cl.granted
+AND           pg_sa.datname = '<ИМЯ_БАЗЫ_ДАННЫХ>';
+
+Добавление в crontab vacuum:
+crontab -e
+1 0 * * * root vacuumdb -U postgres --quiet --analyze --dbname=DbName &
+
+Расположени WAL
+pg_xlog/ (pg_wal/) в $DATADIR
+
+Процесс работы WAL
+WAL Buffers->Srorage->WAL Sender
+                         V
+                      Network
+                         V
+                        WAL
+                      Receiver->Storage->Startup
+                                         Process
+
+Решение большого объема WAL
+-Уменьшить объем изменений в БД в единицу времени //если удаляется много млн записей, то разбить удаление на несколько запросов  
+-Уменьшить объем записи в WAL в целом
+    -full_page_writes = off;
+    -Увеличить интервал между чекпоинтами(30/60 min)
+Распухание pg_wal/
+-Забытые слоты репликации
+-Сломанная архивация
+-Уменьшить объем изменений в БД в единицу времени
+Что делать
+-Отстрелить долгие CRUD запросы - pg_terminate_backend();
+-Уменьшить reserved space ratio (ext filesystems)
+-Добавить место(LVM, ZFS, etc)
+-НИКОГДА НИЧЕГО НЕ УДАЛЯТЬ РУКАМИ ИЗ pg_xlog/, pg_wal/(только через команду checkpoint)
+-проверить репликацию
+-удалить слот репликации или починить подписчика
+Проблемы репликации
+    Как обнаружить
+    -pg_stat_databases, pg_stat_databases_conflicts;
+    postgresql logs
+Решения
+-Увеличить max_standby_streaming_delay(риск лага репл-ии)
+-Включить hot_standby_feedback(риск распухания таблиц/индексов)
+-Переписать долгие запросы
+-Настроить выделенную реплику для долгих запросов
+
+Лаги репликации
+SELECT
+client_addr AS client, usename AS user, application_name AS name,
+state, sync_state AS mode,
+(pg_wal_lsn_diff(pg_current_wal_lsn(),sent_lsn) / 1024)::int as pending,
+(pg_wal_lsn_diff(sent_lsn,write_lsn) / 1024)::int as write,
+(pg_wal_lsn_diff(write_lsn,flush_lsn) / 1024)::int as flush,
+(pg_wal_lsn_diff(flush_lsn,replay_lsn) / 1024)::int as replay,
+(pg_wal_lsn_diff(pg_current_wal_lsn(),replay_lsn))::int / 1024 as total_lag
+FROM pg_stat_replication;
+
+Конфигуратор конфиг postgresql
+https://tantorlabs.ru/pgconfigurator
+https://pgtune.leopard.in.ua/?dbVersion=13&osType=linux&dbType=web&cpuNum=16&totalMemory=64&totalMemoryUnit=GB&connectionNum=100&hdType=ssd
+https://pgconfigurator.cybertec.at/
+
+Стэк postgresql отказоустойчивый кластер
+1. Postgres
+2. Patroni
+3. Etcd
+4. Harproxy
+5. Keepalived
+6. Pg_configurator
+7. Wal-g
+
+мертвые строки
+SELECT
+    schemaname AS schema_name,
+    relname AS table_name,
+    n_dead_tup AS dead_rows,
+    pg_size_pretty(pg_relation_size(relid)) AS table_size,
+    pg_size_pretty(pg_total_relation_size(relid)) AS total_size,
+    n_live_tup AS live_rows,
+    round((n_dead_tup::numeric / NULLIF(n_live_tup + n_dead_tup, 0)) * 100, 2) AS dead_ratio_percent,
+    last_autovacuum,
+    last_vacuum
+FROM
+    pg_stat_user_tables  -- Только пользовательские таблицы
+ORDER BY
+    n_dead_tup DESC
+LIMIT 20;
