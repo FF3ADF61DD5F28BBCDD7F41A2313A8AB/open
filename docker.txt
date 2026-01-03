@@ -1,0 +1,109 @@
+Установка Ubuntu
+https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04
+
+docker pull postgres:14.5   скачать образ postgres версии 14.5
+docker images               список образов в системе
+docker run --name bdpostgres -e POSTGRES_PASSWORD=mysecretpassword -p 5432:5432 -d <idобраза>   запустить экземпляр postgres
+
+docker ps                   список работающих контейнеров
+docker ps -a                список всех контейнеров
+docker exec -it <имя контейнера> /bin/bash  подключиться к оболочке bash
+docker network create --subnet=10.5.0.0/16 custom_net   создать сеть докер
+docker rm <id контейнера>    удалить контейнер
+docker rmi <id образа>       удалить образ
+docker strart/stop <id контейнера>
+docker search                поиск образа
+docker logs my_container     логи контейнера
+docker inspect my_container  подробная информация о контейнере
+docker network ls            список сетей докер
+docker network inspect my_network подробная информация о сети
+docker image tag <id_образа> <new_image_name>:latest переименовать образ
+restart: unless-stopped - для авторестарта контейнера
+
+Сетевые режимы docker:
+bridge, host, none, overlay
+
+docker network create --subnet=10.5.0.0/16 custom_net   создать сеть докер
+docker run --detach --net custom_net --ip 10.5.0.5 -p 3306:3306 --mount source=db,target=/var/lib/mysql -e MYSQL_ROOT_PASSWORD=password mysql:latest    запустить контейнер со статическим IP
+
+Общие команды
+
+docker version              версия
+docker info                 системная информация Docker
+docker system df            использование диска
+docker stats                статистика контейнера в реальном времени
+docker events               события doker в реальном времени
+
+Работа с контейнерами
+
+docker ps                   список работающих контейнеров
+docker ps -a                список всех контейнеров
+docker run [image]          запустить новый контейнер
+docker run -d [image]       запустить контейнер в фоновом режиме
+docker run -it [image] /bin/bash запустить контейнер в интерактивном режиме
+docker start [container]    запустить остановленный контейнер
+docker stop [container]     остановить контейнер
+docker restart  [container] перезапустить контейнер
+docker pause [container]    приостановит контейнер
+docker unpause [container]  возобновить контейнер
+docker rm [container]       удалить контейнер
+docker rm -f [container]    принудительно удалить контейнер
+docker container prune      удалить все остановленные контейнеры
+docker logs [container]     показать логи контейнера
+docker logs -f [container]  следить за логами в реальном времени
+docker exec -it [container] /bin/bash войти в контейнер
+docker cp [container]:/path /local/path копировать файлы из контейнера
+docker cp /local/path [container]:/path копировать файлы в контейнер
+docker rename [old] [new]   переименовать контейнер
+docker update [container]   обновить конфигурацию контейнера
+docker wait [container]     ожидать завершения контейнера
+docker inspect [container]  показать детальную информацию о контейнере
+docker port [container]     показать порты контейнера
+
+Работа с образами
+
+docker images               показать образы
+docker pull [image]         скачать образ
+docker build -t [name]      собрать образ из Dockerfile
+docker rmi [image]          удалить образ
+docker image prune          удалить неиспользуемые образы
+docker tag [old] [new]      создать тег для образа
+docker save [image] > file.tar сохранить образ в архив
+docker load < file.tar      загрузить образ из архива
+docker history [image]      показать историю образа
+docker commit [container] [image] создать образ из контейнера
+docker image inspect [image] детальная информация об образе
+
+Работа с томами
+
+docker volume ls            показать тома
+docker volume create [name] создать том
+docker volume rm [volume]   удалить том
+docker volume prune         удалить неиспользуемые тома
+docker volume inspect [volume] информация о томе
+
+Сети
+
+docker network ls           показать сети
+docker network create [name] создать сеть
+docker network connect [network] [container] подключить контейнер к сети
+docker network disconnect [network] [container] отключить контейнер от сети
+docker network inspect [network] информация о сети
+docker network prune        удалить неиспользуемые сети
+
+Дополнительные полезные команды
+
+docker-compose up           запустить композицию (не часть Docker CLI)
+docker-compose down         остановить композицию
+docker login                логин в реестр
+docker logout               выйти из реестра
+docker system prune -a      полная очистка (контейнеры, образы, тома, сети)
+
+Полезные флаги для docker run:
+
+· -p 8080:80 — Проброс портов
+· -v /host:/container — Монтирование томов
+· -e VAR=value — Переменные окружения
+· --name — Имя контейнера
+· --network — Подключение к сети
+· --restart unless-stopped — Политика перезапуска
